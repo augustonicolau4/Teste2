@@ -1,0 +1,84 @@
+services:
+  # ---------------------------------------------------------------------------
+  # Servico Node: gateway WhatsApp + fila + ponte de impressao
+  # ---------------------------------------------------------------------------
+  whatsapp-service:
+    build: .
+    image: autogest-whatsapp-service:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      # Dentro da rede Docker usamos os nomes dos servicos.
+      REDIS_URL: redis://redis:6379
+      EVOLUTION_API_URL: ${EVOLUTION_API_URL:-http://evolution-api:8080}
+      # Por predefinicao o Laravel corre no host; ajuste conforme o seu ambiente.
+      LARAVEL_BASE_URL: ${LARAVEL_BASE_URL:-http://host.docker.internal:8000}
+    ports:
+      - "${PORT:-3000}:3000"
+    depends_on:
+      - redis
+      - evolution-api
+    volumes:
+      - spool:/app/spool
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # ---------------------------------------------------------------------------
+  # Redis (backend do BullMQ)
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+  # ---------------------------------------------------------------------------
+  # Postgres (backend de dados da Evolution API)
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: evolution
+      POSTGRES_PASSWORD: evolution
+      POSTGRES_DB: evolution
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  # ---------------------------------------------------------------------------
+  # Evolution API (placeholder) - https://github.com/EvolutionAPI/evolution-api
+  # Ajuste imagem/tag e credenciais conforme a sua instalacao.
+  # ---------------------------------------------------------------------------
+  evolution-api:
+    image: atendai/evolution-api:latest
+    restart: unless-stopped
+    environment:
+      SERVER_URL: http://localhost:8080
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY:-change-me}
+      DATABASE_ENABLED: "true"
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://evolution:evolution@postgres:5432/evolution?schema=public
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: redis://redis:6379/6
+      CACHE_REDIS_PREFIX_KEY: evolution
+      CONFIG_SESSION_PHONE_CLIENT: AutoGest Nicola
+      QRCODE_LIMIT: "30"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - evolution-data:/evolution/instances
+
+volumes:
+  spool:
+  redis-data:
+  postgres-data:
+  evolution-data:
