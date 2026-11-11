@@ -1,59 +1,173 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
-
 <p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+  <strong>autogest_nicola</strong><br>
+  Sistema de Gestão de Oficina Automóvel e Facturação Certificada (AGT / Angola)
 </p>
 
-## About Laravel
+Sistema de gestão empresarial para oficinas automóvel, com facturação certificada
+pela **AGT** (Administração Geral Tributária de Angola), gestão de inventário,
+ordens de serviço, RH, CRM e integração com impressão dual (A4 / Ticket 80mm / 58mm),
+além de um microsserviço Node.js para WhatsApp / IA.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Stack
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+| Camada | Tecnologias |
+|---|---|
+| Backend | PHP `^8.2`, Laravel `^12.0`, Livewire `^4.4`, Sanctum `^4.4` |
+| Domínio | `laravel-dompdf`, `maatwebsite/excel`, `simple-qrcode`, `spatie/laravel-permission` |
+| Frontend | Vite + Tailwind + Alpine.js |
+| Microsserviço | Node.js `>=20` (Express, BullMQ, Redis, Pino, Zod) |
 
-## Learning Laravel
+---
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## Pré-requisitos
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+| Ferramenta | Versão mínima |
+|---|---|
+| PHP | 8.2+ (extensões `openssl`, `pdo_mysql`, `mbstring`, `xml`, `bcmath`, `gd`) |
+| Composer | 2.x |
+| Node.js | 20+ |
+| MySQL | 8+ (ou SQLite para teste rápido) |
+| Redis | opcional (necessário apenas para o microsserviço WhatsApp) |
 
-## Laravel Sponsors
+---
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## Instalação
 
-### Premium Partners
+### 1. Obter o código
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+```bash
+git clone https://github.com/augustonicolau4/Teste2.git autogest_nicola
+cd autogest_nicola
+```
 
-## Contributing
+### 2. Backend (Laravel)
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+# dependências PHP
+composer install
 
-## Code of Conduct
+# criar o ficheiro de ambiente e gerar a chave da aplicação
+cp .env.example .env
+php artisan key:generate
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Criar a base de dados MySQL (uma vez):
 
-## Security Vulnerabilities
+```sql
+CREATE DATABASE autogest_nicola CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Ajuste no `.env` apenas o que for necessário (`DB_USERNAME` / `DB_PASSWORD`).
 
-## License
+> **Sem MySQL?** Para teste rápido use SQLite — no `.env` coloque
+> `DB_CONNECTION=sqlite` e `DB_DATABASE=/caminho/absoluto/database.sqlite`,
+> depois `touch database/database.sqlite`.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Migrar e popular os dados-base + demonstração:
+
+```bash
+php artisan migrate --seed
+```
+
+Isto cria a empresa emitente, impostos (IVA 14/7/0, ISE, NS), séries de
+facturação, os 6 utilizadores por perfil e dados de demonstração (clientes,
+viaturas, produtos, ordens de serviço e 1 factura-recibo).
+
+As **chaves RSA de assinatura digital fiscal** (2048 bits) são geradas
+automaticamente na primeira emissão, em `storage/app/keys/`. Não é necessária
+qualquer acção manual.
+
+### 3. Frontend
+
+```bash
+npm install
+npm run build        # produção
+# ou: npm run dev     # desenvolvimento (hot reload)
+```
+
+### 4. Microsserviço WhatsApp / IA (opcional)
+
+Necessário apenas se usar integração WhatsApp ou impressão térmica.
+
+```bash
+cd whatsapp-service
+cp .env.example .env
+npm install
+```
+
+Garanta que `SERVICE_TOKEN` (no `whatsapp-service/.env`) é **igual** a
+`WHATSAPP_SERVICE_TOKEN` (na raiz do Laravel). Requer também Redis e um gateway
+WhatsApp (Evolution API).
+
+---
+
+## Arrancar
+
+```bash
+# Opção A — tudo de uma vez (servidor + fila + logs + vite)
+composer dev
+
+# Opção B — manual
+php artisan serve            # terminal 1
+php artisan queue:work       # terminal 2 (fila da base de dados)
+```
+
+Aceder em **http://localhost:8000**
+
+---
+
+## Atalho (após clonar)
+
+```bash
+composer install && cp .env.example .env && php artisan key:generate
+php artisan migrate --seed
+npm install && npm run build
+composer dev
+```
+
+> O script `composer setup` também automatiza a instalação e o build.
+
+---
+
+## Acesso inicial
+
+Todos os utilizadores de demonstração usam a password `password`.
+
+| Perfil | Email |
+|---|---|
+| ADMIN | `admin@autogest.co.ao` |
+| GESTOR | `gestor@autogest.co.ao` |
+| FINANCEIRO | `financeiro@autogest.co.ao` |
+| RH | `rh@autogest.co.ao` |
+| APROVISIONADOR | `stock@autogest.co.ao` |
+| PROMOTOR | `promotor@autogest.co.ao` |
+
+> ⚠️ **Altere estas credenciais antes de qualquer uso em produção.**
+
+---
+
+## Configuração
+
+Todas as variáveis de ambiente estão documentadas em [`.env.example`](.env.example).
+As principais:
+
+- **Fiscal / AGT** — empresa emitente, séries, IVA e retenção em `config/autogest.php`.
+- **Assinatura digital** — chave RSA e algoritmo (SHA-256) em `config/autogest.php`.
+- **Integrações** — `WHATSAPP_SERVICE_URL`, `WHATSAPP_SERVICE_TOKEN`, `AUTOGEST_AI_*`.
+- **Impressão** — impressora térmica por omissão (`AUTOGEST_TICKET_PRINTER`).
+
+---
+
+## Testes
+
+```bash
+composer test
+```
+
+---
+
+## Licença
+
+Software proprietário. Todos os direitos reservados.
